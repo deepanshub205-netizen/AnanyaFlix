@@ -1,0 +1,406 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Ananyaflix — Firebase Edition</title>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg-1:#000000; --bg-2:#120000; --nf-red:#e50914;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%}
+    body{
+      font-family:'Montserrat',system-ui,-apple-system,"Segoe UI",Roboto,Arial;
+      background: linear-gradient(180deg,var(--bg-1),var(--bg-2));
+      color:#fff;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:30px;overflow:hidden;
+    }
+    /* doodles */
+    .doodles{position:fixed;inset:0;pointer-events:none;z-index:0}
+    .doodle{position:absolute;stroke:var(--nf-red);fill:none;stroke-width:1.6;opacity:0.12;filter:drop-shadow(0 8px 18px rgba(0,0,0,0.8));}
+    @keyframes floatA{0%{transform:translateY(0) translateX(0)}50%{transform:translateY(-20px) translateX(8px)}100%{transform:translateY(0) translateX(0)}}
+    @keyframes floatB{0%{transform:translateY(0) translateX(0)}50%{transform:translateY(18px) translateX(-12px)}100%{transform:translateY(0) translateX(0)}}
+    .d1{top:6%;left:8%;width:120px;animation:floatA 9s ease-in-out infinite}
+    .d2{top:18%;right:6%;width:160px;animation:floatB 12s ease-in-out infinite}
+    .d3{bottom:10%;left:12%;width:140px;animation:floatB 11s ease-in-out infinite}
+    .d4{bottom:18%;right:14%;width:110px;animation:floatA 10s ease-in-out infinite}
+    .d5{top:40%;left:48%;width:95px;animation:floatA 13s ease-in-out infinite;opacity:0.08}
+    .d6{top:28%;right:40%;width:130px;animation:floatB 14s ease-in-out infinite;opacity:0.09}
+
+    .card{width:100%;max-width:1000px;padding:28px;border-radius:10px;
+      background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.005));
+      box-shadow:0 20px 60px rgba(0,0,0,0.7);backdrop-filter:blur(6px);position:relative;overflow:hidden;border:1px solid rgba(255,255,255,0.03);z-index:2;}
+    .topbar{display:flex;align-items:center;justify-content:space-between;gap:12px}
+    .logo .word{font-weight:900;letter-spacing:6px;font-size:40px;color:var(--nf-red);text-shadow:0 10px 30px rgba(229,9,20,0.12)}
+    .nav{display:flex;gap:10px}
+    .nav button{background:transparent;border:0;padding:8px 12px;border-radius:6px;color:#fff;cursor:pointer;font-weight:700;opacity:0.95}
+    .screens{position:relative;min-height:560px}
+    .screen{position:absolute;inset:0;opacity:0;transform:translateY(12px) scale(0.995);transition:all 360ms cubic-bezier(.2,.9,.2,1);pointer-events:none;padding:28px;display:flex;flex-direction:column;gap:18px}
+    .screen.active{opacity:1;transform:translateY(0) scale(1);pointer-events:auto}
+    .home-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:18px}
+    .tile{background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.005));border-radius:8px;padding:20px;min-height:220px;display:flex;flex-direction:column;justify-content:space-between;cursor:pointer;border:1px solid rgba(255,255,255,0.03)}
+    .tile h3{font-size:20px;margin-bottom:6px}
+    .tile p{color:rgba(255,255,255,0.75)}
+    .cta{background:var(--nf-red);color:#fff;padding:10px 14px;border-radius:6px;border:0;font-weight:800;cursor:pointer}
+    .box{background:rgba(255,255,255,0.01);padding:18px;border-radius:10px;border:1px solid rgba(255,255,255,0.03)}
+    textarea{width:100%;min-height:120px;padding:12px;border-radius:8px;border:0;background:rgba(0,0,0,0.35);color:#fff;font-size:15px}
+    .row{display:flex;gap:10px;align-items:center}
+    .messages{max-height:260px;overflow:auto;padding:8px;display:flex;flex-direction:column;gap:8px}
+    .msg{background:rgba(255,255,255,0.02);padding:10px;border-radius:8px}
+    .muted{color:rgba(255,255,255,0.6);font-size:13px}
+    .fact-box{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px}
+    .fact{font-size:20px;text-align:center;max-width:760px}
+    .reasons{display:flex;flex-direction:column;gap:12px;margin-top:8px}
+    .reason{padding:14px;background:linear-gradient(90deg, rgba(229,9,20,0.06), rgba(0,0,0,0.15));border-radius:8px;border:1px solid rgba(229,9,20,0.08);color:#fff;font-weight:700;opacity:0;transform:translateY(6px)}
+    .reason.show{animation:reasonIn 420ms cubic-bezier(.2,.9,.2,1) forwards}
+    @keyframes reasonIn{to{opacity:1;transform:translateY(0)}}
+    .banner{background:rgba(255,100,100,0.08);color:var(--nf-red);padding:8px 12px;border-radius:8px;border:1px solid rgba(229,9,20,0.08);font-weight:700}
+    @media (max-width:900px){.home-grid{grid-template-columns:repeat(1,1fr)}.logo .word{font-size:28px}}
+  </style>
+</head>
+<body>
+  <div class="doodles" aria-hidden="true">
+    <!-- simple outline cat doodles -->
+    <svg class="doodle d1" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><path d="M20 60 Q18 40 30 30 Q40 20 52 28 Q64 20 74 30 Q82 40 78 60 Q60 72 50 70 Q40 72 20 60 Z"/><path d="M35 36 Q37 32 40 36"/></svg>
+    <svg class="doodle d2" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><path d="M10 50 Q20 30 40 28 Q60 24 76 36 Q86 46 78 62 Q64 76 46 74 Q28 76 10 62 Z"/><path d="M38 44 Q40 40 43 44"/></svg>
+    <svg class="doodle d3" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><path d="M20 60 Q28 44 40 40 Q52 36 66 44 Q78 52 74 66 Q58 78 40 74 Q26 76 20 60 Z"/><path d="M50 50 Q52 46 54 50"/></svg>
+    <svg class="doodle d4" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><path d="M18 48 Q28 30 48 28 Q68 26 80 42 Q88 58 74 68 Q60 82 38 74 Q24 70 18 48 Z"/></svg>
+    <svg class="doodle d5" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><path d="M28 52 Q36 36 50 34 Q66 32 78 46 Q86 60 70 68 Q56 78 38 70 Q28 66 28 52 Z"/></svg>
+    <svg class="doodle d6" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><path d="M20 56 Q30 40 48 36 Q66 34 82 46 Q90 58 78 70 Q62 84 40 74 Q28 70 20 56 Z"/></svg>
+  </div>
+
+  <main class="card" role="main">
+    <div class="topbar">
+      <div class="logo" onclick="goHome()" style="cursor:pointer;">
+        <div class="word">ANANYA<span style="color:#fff;font-weight:700;margin-left:6px">FLIX</span></div>
+      </div>
+      <div class="nav">
+        <button onclick="showScreen('home')">Home</button>
+        <button onclick="showScreen('ignore')">Why are you ignoring me?</button>
+        <button onclick="showScreen('talk')">Why should we be talking right now?</button>
+        <button onclick="showScreen('cats')">Random Cat Facts</button>
+      </div>
+    </div>
+
+    <div id="statusBanner" style="margin-top:12px;display:none"></div>
+
+    <div class="screens">
+      <!-- HOME -->
+      <section id="home" class="screen active">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+          <div>
+            <h2 style="font-size:28px">Welcome to Ananyaflix</h2>
+            <p class="muted">Netflix-style, but cat-approved. Click a tile to open a screen.</p>
+          </div>
+          <div style="width:110px;height:110px;border-radius:8px;background:rgba(255,255,255,0.02);display:flex;align-items:center;justify-content:center;font-weight:800;color:var(--nf-red)">FLIX</div>
+        </div>
+
+        <div class="home-grid">
+          <div class="tile" onclick="showScreen('ignore')" aria-label="Why are you ignoring me">
+            <div>
+              <h3>💌 Why are you ignoring me?</h3>
+              <p>Open the message box and leave something sweet (or sassy). Saved online when possible.</p>
+            </div>
+            <div style="display:flex;justify-content:flex-end"><button class="cta">Open</button></div>
+          </div>
+
+          <div class="tile" onclick="showScreen('talk')" aria-label="Why should we be talking right now">
+            <div>
+              <h3>💭 Why should we be talking right now?</h3>
+              <p>Read a cinematic list of reasons — no replies, just feelings.</p>
+            </div>
+            <div style="display:flex;justify-content:flex-end"><button class="cta">View</button></div>
+          </div>
+
+          <div class="tile" onclick="showScreen('cats')" aria-label="Random Cat Facts">
+            <div>
+              <h3>🐾 Random Cat Facts</h3>
+              <p>New cat facts every 10 seconds. Take a cute meow break.</p>
+            </div>
+            <div style="display:flex;justify-content:flex-end"><button class="cta">Meow</button></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- IGNORE PAGE -->
+      <section id="ignore" class="screen" aria-hidden="true">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <h2>💌 Why are you ignoring me?</h2>
+            <p class="muted">Write a message and click Save. The page will try to save online — if that fails, it will keep messages locally on this browser.</p>
+          </div>
+          <div style="display:flex;gap:10px">
+            <button onclick="showScreen('home')">Back</button>
+          </div>
+        </div>
+
+        <div class="box">
+          <label class="muted">Write your message</label>
+          <textarea id="ignoreInput" placeholder="Type something..."></textarea>
+          <div class="row" style="margin-top:10px">
+            <button class="cta" id="saveIgnore">Save Message</button>
+            <button class="" id="viewIgnore">View Messages</button>
+            <div style="flex:1"></div>
+            <div class="muted" id="ignoreStatus"></div>
+          </div>
+
+          <div id="ignoreList" style="margin-top:12px;display:none">
+            <h4 style="margin-bottom:8px">Messages</h4>
+            <div class="messages" id="ignoreMessages"></div>
+            <div style="display:flex;gap:8px;margin-top:8px"><button onclick="clearIgnore()">Clear All</button><button onclick="hideIgnoreList()">Close</button></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TALK PAGE (reasons only) -->
+      <section id="talk" class="screen" aria-hidden="true">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <h2>💭 Why should we be talking right now?</h2>
+            <p class="muted">No input — just read the reasons. Let the cinema of feelings do the rest.</p>
+          </div>
+          <div style="display:flex;gap:10px">
+            <button onclick="showScreen('home')">Back</button>
+          </div>
+        </div>
+
+        <div class="box">
+          <div class="reasons" id="reasonsList"></div>
+        </div>
+      </section>
+
+      <!-- CATS PAGE -->
+      <section id="cats" class="screen" aria-hidden="true">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <h2>🐾 Random Cat Facts</h2>
+            <p class="muted">Relax and enjoy a rotating stream of cat trivia — new fact every 10 seconds.</p>
+          </div>
+          <div style="display:flex;gap:10px">
+            <button onclick="showScreen('home')">Back</button>
+            <button id="pauseFacts">Pause</button>
+          </div>
+        </div>
+
+        <div class="box fact-box">
+          <div class="fact" id="catFact">Loading a cute cat fact...</div>
+          <div class="muted">Next fact in <span id="countdown">10</span>s</div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <!-- Firebase (compat CDN so this works in a single HTML file) -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+  <script>
+    /***** Paste your firebaseConfig below (I used the one you provided) *****/
+    const firebaseConfig = {
+      apiKey: "AIzaSyAbvu277dapIZpJwjK7OquB6XXDVHG4n_U",
+      authDomain: "ananyaflix.firebaseapp.com",
+      projectId: "ananyaflix",
+      storageBucket: "ananyaflix.firebasestorage.app",
+      messagingSenderId: "608691931197",
+      appId: "1:608691931197:web:3d57a310f4cf98eb134254",
+      measurementId: "G-WH0JVXF1DW"
+    };
+
+    // Initialize Firebase (compat)
+    let firebaseAvailable = false;
+    try {
+      firebase.initializeApp(firebaseConfig);
+      var db = firebase.firestore();
+      firebaseAvailable = true;
+    } catch (err) {
+      console.warn('Firebase init failed:', err);
+      firebaseAvailable = false;
+    }
+
+    // UI helpers
+    function showBanner(text){
+      const b = document.getElementById('statusBanner');
+      if(!text){ b.style.display='none'; b.innerHTML=''; return; }
+      b.style.display='block'; b.innerHTML = '<div class="banner">'+text+'</div>';
+    }
+
+    if(!firebaseAvailable){
+      showBanner('Firebase not available — messages will be saved locally on this browser.');
+    } else {
+      showBanner('Connected to Firebase — messages will attempt to save online. If Firestore isn\'t enabled in the console, the page will fallback to local storage.');
+    }
+
+    // --- Screen navigation ---
+    function showScreen(id){
+      document.querySelectorAll('.screen').forEach(s=>{ s.classList.remove('active'); s.setAttribute('aria-hidden','true'); });
+      const el = document.getElementById(id);
+      if(el){ el.classList.add('active'); el.setAttribute('aria-hidden','false'); }
+      if(id === 'cats'){ startFacts(); } else { stopFacts(); }
+      if(id === 'talk'){ showReasons(); } else { clearReasons(); }
+      if(id === 'ignore'){ loadMessages(); }
+    }
+    function goHome(){ showScreen('home'); }
+
+    // --- Local storage helpers (fallback) ---
+    function readKeyLocal(key){ try { return JSON.parse(localStorage.getItem(key) || '[]'); } catch(e){ return []; } }
+    function writeKeyLocal(key,arr){ localStorage.setItem(key, JSON.stringify(arr)); }
+
+    // --- SAVE message (tries Firebase, falls back to localStorage) ---
+    async function saveMessageShared(text){
+      const ts = Date.now();
+      const rec = { text, ts };
+      if(firebaseAvailable){
+        try {
+          // write to Firestore collection "messages"
+          await db.collection('messages').add({ text: text, ts: firebase.firestore.FieldValue.serverTimestamp() });
+          // After writing, fetch fresh messages
+          await loadMessages();
+          return { ok:true, cloud:true };
+        } catch (err) {
+          console.warn('Firestore write failed, falling back to local.', err);
+          firebaseAvailable = false;
+          showBanner('Saving to local only — Firestore write failed. Messages still work locally.');
+        }
+      }
+      // fallback: write locally
+      const arr = readKeyLocal('ananyaflix_shared') || [];
+      arr.unshift(rec);
+      writeKeyLocal('ananyaflix_shared', arr);
+      populateIgnoreListLocal(); // update UI
+      return { ok:true, cloud:false };
+    }
+
+    // --- LOAD messages (tries Firebase, falls back to localStorage) ---
+    async function loadMessages(){
+      const listContainer = document.getElementById('ignoreMessages');
+      listContainer.innerHTML = '<div class="muted">Loading messages…</div>';
+      if(firebaseAvailable){
+        try {
+          // attempt to get snapshots (not realtime) ordered by timestamp desc
+          const snapshot = await db.collection('messages').orderBy('ts','desc').limit(200).get();
+          const results = [];
+          snapshot.forEach(doc => {
+            const data = doc.data();
+            // Firestore serverTimestamp might be null until resolved, use fallback
+            const ts = data.ts && data.ts.toDate ? data.ts.toDate().getTime() : Date.now();
+            results.push({ text: data.text, ts });
+          });
+          populateIgnoreListFromArray(results);
+          return;
+        } catch (err) {
+          console.warn('Firestore read failed, using local fallback.', err);
+          firebaseAvailable = false;
+          showBanner('Could not load cloud messages — showing local ones instead.');
+        }
+      }
+      // local fallback
+      populateIgnoreListLocal();
+    }
+
+    // populate UI from an array
+    function populateIgnoreListFromArray(arr){
+      const container = document.getElementById('ignoreMessages');
+      container.innerHTML = '';
+      if(!arr || arr.length===0){ container.innerHTML = '<div class="muted">No messages yet.</div>'; return; }
+      arr.forEach(m=>{
+        const d = document.createElement('div'); d.className='msg';
+        d.innerHTML = `<div style="font-size:14px">${escapeHtml(m.text)}</div><div class="muted" style="margin-top:6px">${new Date(m.ts).toLocaleString()}</div>`;
+        container.appendChild(d);
+      });
+    }
+
+    // local populate
+    function populateIgnoreListLocal(){
+      const container = document.getElementById('ignoreMessages');
+      container.innerHTML = '';
+      const arr = readKeyLocal('ananyaflix_shared') || [];
+      if(arr.length===0){ container.innerHTML = '<div class="muted">No messages yet.</div>'; return; }
+      arr.forEach(m=>{
+        const d = document.createElement('div'); d.className='msg';
+        d.innerHTML = `<div style="font-size:14px">${escapeHtml(m.text)}</div><div class="muted" style="margin-top:6px">${new Date(m.ts).toLocaleString()}</div>`;
+        container.appendChild(d);
+      });
+    }
+
+    // UI show/hide
+    document.getElementById('viewIgnore').addEventListener('click', ()=>{
+      document.getElementById('ignoreList').style.display = 'block';
+      loadMessages();
+    });
+    function hideIgnoreList(){ document.getElementById('ignoreList').style.display = 'none'; }
+
+    // Save button handler
+    document.getElementById('saveIgnore').addEventListener('click', async ()=>{
+      const text = document.getElementById('ignoreInput').value.trim();
+      if(!text){ document.getElementById('ignoreStatus').textContent = 'Type something first.'; return; }
+      document.getElementById('ignoreStatus').textContent = 'Saving…';
+      const res = await saveMessageShared(text);
+      document.getElementById('ignoreInput').value = '';
+      document.getElementById('ignoreStatus').textContent = res.cloud ? 'Saved to cloud ✔' : 'Saved locally ✔';
+      setTimeout(()=>document.getElementById('ignoreStatus').textContent = '', 1400);
+    });
+
+    function clearIgnore(){
+      if(!confirm('Clear all saved local messages? Note: cloud messages cannot be deleted from this page.')) return;
+      writeKeyLocal('ananyaflix_shared', []);
+      populateIgnoreListLocal();
+    }
+
+    // --- Reasons (talk page) ---
+    const reasons = [
+      'Because I miss you.',
+      'Because if you don\'t talk, it might be the end of the world.',
+      'If you don\'t reply now, cats might go extinct.',
+      'Because I love you.',
+      'When we talk, every stress in the world disappears.',
+      'Because your voice is my favorite sound.',
+      'Because my day doesn\'t start until you talk to me.',
+      'Because you\'re the plot twist I never knew I needed.'
+    ];
+    let reasonTimeouts = [];
+    function showReasons(){
+      const container = document.getElementById('reasonsList'); container.innerHTML='';
+      reasonTimeouts.forEach(t=>clearTimeout(t)); reasonTimeouts=[];
+      reasons.forEach((r,i)=>{
+        const div = document.createElement('div'); div.className='reason'; div.textContent = r; container.appendChild(div);
+        const t = setTimeout(()=>{ div.classList.add('show'); }, 300 + i*260);
+        reasonTimeouts.push(t);
+      });
+    }
+    function clearReasons(){ reasonTimeouts.forEach(t=>clearTimeout(t)); reasonTimeouts=[]; const c=document.getElementById('reasonsList'); if(c) c.innerHTML=''; }
+
+    // --- Cat facts ---
+    const facts = [
+      'Cats sleep 12–16 hours a day on average — they are champions of napping.',
+      'A group of kittens is called a "litter"; a group of adult cats is called a "clowder".',
+      'Cats have a powerful sense of smell — about 14 times stronger than humans.',
+      'All domestic cats descend from the Near Eastern wildcat, Felis silvestris lybica.',
+      'Cats can make over 100 different vocal sounds, while dogs make about 10.',
+      'A cat’s purr can promote healing — vibrations are around 25–150 Hz, which is therapeutic.',
+      'Most cats are lactose intolerant — milk can upset their stomachs.',
+      'The pattern of a cat’s nose is unique, much like a human fingerprint.',
+      'Cats have whiskers on the backs of their front legs — they help sense movement.',
+      'A cat can jump up to six times its body length in one leap.'
+    ];
+    let factIndex = 0, factTimer=null, countdownTimer=null, paused=false;
+    const countEl = document.getElementById('countdown');
+    function showFact(i){ const el=document.getElementById('catFact'); el.style.opacity=0; setTimeout(()=>{ el.textContent = facts[i%facts.length]; el.style.opacity=1; },220); }
+    function startFacts(){ if(factTimer) return; paused=false; let sec=10; countEl.textContent=sec; showFact(factIndex);
+      countdownTimer = setInterval(()=>{ sec--; if(sec<=0){ factIndex++; showFact(factIndex); sec=10; } countEl.textContent = sec; },1000);
+      factTimer=true; }
+    function stopFacts(){ if(countdownTimer){ clearInterval(countdownTimer); countdownTimer=null; } factTimer=null; }
+    document.getElementById('pauseFacts').addEventListener('click', ()=>{
+      const btn = document.getElementById('pauseFacts');
+      if(paused){ startFacts(); btn.textContent='Pause'; paused=false } else { stopFacts(); btn.textContent='Resume'; paused=true }
+    });
+
+    // small util
+    function escapeHtml(str){ return String(str).replace(/[&<>"]/g, function(s){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[s]; }); }
+
+    // initial page
+    window.addEventListener('load', ()=>{ showScreen('home'); });
+
+  </script>
+</body>
+</html>
